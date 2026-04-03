@@ -1,0 +1,10 @@
+{
+  "welcome": "Welcome to Language Test",
+  "greeting": "Greeting",
+  "hello_world": "Hello World!",
+  "description": "Description",
+  "app_description": "This is a multi-language test application.",
+  "show_language": "Show Current Language",
+  "language_info": "Language Information",
+  "current_language": "Current Language"
+}

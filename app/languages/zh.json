@@ -1,0 +1,10 @@
+{
+  "welcome": "欢迎来到语言测试",
+  "greeting": "问候",
+  "hello_world": "你好，世界！",
+  "description": "描述",
+  "app_description": "这是一个多语言测试应用。",
+  "show_language": "显示当前语言",
+  "language_info": "语言信息",
+  "current_language": "当前语言"
+}

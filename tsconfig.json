@@ -8,16 +8,13 @@
       "@/components/*": ["app/components/*"],
       "@/languages/*": ["app/languages/*"],
       "@/assets/*": ["assets/*"],
+      "@/hooks/*": ["hooks/*"],
 
       "@components/*": ["app/components/*"],
       "@languages/*": ["app/languages/*"],
       "@assets/*": ["assets/*"],
+      "@hooks/*": ["hooks/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }

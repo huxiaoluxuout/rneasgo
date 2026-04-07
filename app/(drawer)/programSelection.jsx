@@ -5,8 +5,9 @@ import { Appbar } from "react-native-paper";
 export default function HomeScreen() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
-  const { category, title } = params;
-
+  const { category, title, ...item } = params;
+  console.log("params-item", item);
+  console.log("params", params);
   const openDrawer = () => {
     console.log("openDrawer");
     navigation.openDrawer();

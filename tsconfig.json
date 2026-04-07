@@ -5,9 +5,13 @@
     "baseUrl": ".",
     "paths": {
       // 分别配置
+      "@/components/*": ["app/components/*"],
+      "@/languages/*": ["app/languages/*"],
+      "@/assets/*": ["assets/*"],
+
       "@components/*": ["app/components/*"],
       "@languages/*": ["app/languages/*"],
-      "@assets/*": ["assets/*"]
+      "@assets/*": ["assets/*"],
     }
   },
   "include": [

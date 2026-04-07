@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
     defaultText: {
         fontFamily: 'OpenSans-Light', // 设置你的默认常规字体
         // 这里还可以设置默认的字号、颜色等
-        fontSize:16
+        fontSize:17
     },
 });
 

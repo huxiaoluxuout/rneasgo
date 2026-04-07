@@ -1,143 +1,137 @@
-import { View, StyleSheet, Image, Text, TouchableOpacity } from 'react-native';
-import { DrawerItemList, DrawerContentScrollView } from '@react-navigation/drawer';
-import { Drawer, Switch, Divider } from 'react-native-paper';
-import { useNavigation } from 'expo-router';
-import React, { useState } from 'react';
 import OpenSansText from "@components/OpenSansText";
-import {useTranslation} from "react-i18next";
-import i18n from '@languages/i18n';
+import i18n from "@languages/i18n";
+import { DrawerContentScrollView } from "@react-navigation/drawer";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { StyleSheet, Text, View } from "react-native";
+import { Divider, Drawer, Switch } from "react-native-paper";
 
 export default function CustomDrawerContent(props) {
-    const navigation = useNavigation();
+  const { t, ready } = useTranslation();
 
-    const { t, ready } = useTranslation();
+  const [isEnabled, setIsEnabled] = useState(false);
 
-    const [isEnabled, setIsEnabled] = useState(false);
+  // 切换语言
+  const toggleLanguage = () => {
+    if (!i18n.isInitialized) return;
+    const newLang = i18n.language === "en" ? "zh" : "en";
+    i18n.changeLanguage(newLang);
+    setIsEnabled(newLang === "en");
+  };
+  return (
+    <DrawerContentScrollView
+      {...props}
+      contentContainerStyle={styles.container}
+    >
+      <Text> Text 这是默认字体的文本</Text>
+      <OpenSansText>这是默认字体的文本</OpenSansText>
+      <Text style={styles.label}>{t("greeting")}</Text>
 
-    // 切换语言
-    const toggleLanguage = () => {
-        if (!i18n.isInitialized) return;
-        const newLang = i18n.language === 'en' ? 'zh' : 'en';
-        i18n.changeLanguage(newLang);
-        setIsEnabled(newLang === 'en');
-    };
-    return (
-        <DrawerContentScrollView {...props} contentContainerStyle={styles.container}>
+      <Divider style={styles.divider} />
 
-            <Text > Text 这是默认字体的文本</Text>
-            <OpenSansText >这是默认字体的文本</OpenSansText>
-            <Text style={styles.label}>{t('greeting')}</Text>
+      {/* 抽屉菜单项 - 使用 react-native-paper 的 Drawer.Item */}
+      <Drawer.Section style={styles.drawerSection}>
+        <Drawer.Item
+          label="首页"
+          icon="home"
+          active={props.state.routes[props.state.index].name === "index"}
+          onPress={() => {
+            props.navigation.navigate("index");
+            props.navigation.closeDrawer();
+          }}
+        />
+        <Drawer.Item
+          label="设置"
+          icon="cog"
+          active={props.state.routes[props.state.index].name === "settings"}
+          onPress={() => {
+            props.navigation.navigate("settings");
+            props.navigation.closeDrawer();
+          }}
+        />
+        <Drawer.Item
+          label="个人资料"
+          icon="account"
+          onPress={() => {
+            // 跳转到个人资料页面
+            console.log("跳转到个人资料");
+            props.navigation.closeDrawer();
+          }}
+        />
+      </Drawer.Section>
 
-            <Divider style={styles.divider} />
+      {/* 自定义开关和按钮 */}
+      <Drawer.Section style={styles.settingsSection}>
+        <View style={styles.switchContainer}>
+          <Drawer.Item
+            label="语言切换"
+            icon="logout"
+            right={() => (
+              <Switch
+                trackColor={{ false: "#767577", true: "#81b0ff" }}
+                thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+                onValueChange={toggleLanguage}
+                value={isEnabled}
+              />
+            )}
+          />
+        </View>
 
-            {/* 抽屉菜单项 - 使用 react-native-paper 的 Drawer.Item */}
-            <Drawer.Section style={styles.drawerSection}>
-                <Drawer.Item
-                    label="首页"
-                    icon="home"
-                    active={props.state.routes[props.state.index].name === 'index'}
-                    onPress={() => {
-                        navigation.navigate('index');
-                        props.navigation.closeDrawer();
-                    }}
-                />
-                <Drawer.Item
-                    label="设置"
-                    icon="cog"
-                    active={props.state.routes[props.state.index].name === 'settings'}
-                    onPress={() => {
-                        navigation.navigate('settings');
-                        props.navigation.closeDrawer();
-                    }}
-                />
-                <Drawer.Item
-                    label="个人资料"
-                    icon="account"
-                    onPress={() => {
-                        // 跳转到个人资料页面
-                        console.log('跳转到个人资料');
-                        props.navigation.closeDrawer();
-                    }}
-                />
+        <Drawer.Item
+          label="关于"
+          icon="information"
+          onPress={() => console.log("关于")}
+        />
 
-            </Drawer.Section>
-
-
-
-            {/* 自定义开关和按钮 */}
-            <Drawer.Section style={styles.settingsSection}>
-                <View style={styles.switchContainer}>
-                    <Drawer.Item
-                        label="语言切换"
-                        icon="logout"
-                        right={() => (
-                            <Switch
-                                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                                thumbColor={isEnabled ? '#f5dd4b' : '#f4f3f4'}
-                                onValueChange={toggleLanguage}
-                                value={isEnabled}
-                            />
-
-                        )}
-                    />
-                </View>
-
-                <Drawer.Item
-                    label="关于"
-                    icon="information"
-                    onPress={() => console.log('关于')}
-                />
-
-                <Drawer.Item
-                    label="退出登录"
-                    icon="logout"
-                    onPress={() => console.log('退出登录')}
-                />
-            </Drawer.Section>
-
-        </DrawerContentScrollView>
-    );
+        <Drawer.Item
+          label="退出登录"
+          icon="logout"
+          onPress={() => console.log("退出登录")}
+        />
+      </Drawer.Section>
+    </DrawerContentScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    userInfoSection: {
-        paddingHorizontal: 20,
-        paddingVertical: 30,
-        alignItems: 'center',
-    },
-    avatar: {
-        marginBottom: 10,
-    },
-    userName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    userEmail: {
-        fontSize: 12,
-    },
-    divider: {
-        marginVertical: 10,
-    },
-    drawerSection: {
-        marginTop: 5,
-    },
-    settingsSection: {
-        marginTop: 5,
-    },
-    switchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    footer: {
-        padding: 20,
-        alignItems: 'center',
-        marginTop: 'auto',
-    },
-    version: {
-        fontSize: 12,
-    },
+  container: {
+    flex: 1,
+  },
+  userInfoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+    alignItems: "center",
+  },
+  avatar: {
+    marginBottom: 10,
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  userEmail: {
+    fontSize: 12,
+  },
+  divider: {
+    marginVertical: 10,
+  },
+  drawerSection: {
+    marginTop: 5,
+  },
+  settingsSection: {
+    marginTop: 5,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  footer: {
+    padding: 20,
+    alignItems: "center",
+    marginTop: "auto",
+  },
+  version: {
+    fontSize: 12,
+  },
 });

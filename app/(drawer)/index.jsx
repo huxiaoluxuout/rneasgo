@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Appbar, IconButton } from "react-native-paper";
+import { Appbar, IconButton ,Portal,PaperProvider } from "react-native-paper";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -136,35 +136,35 @@ export default function HomeScreen() {
         <Appbar.Action icon="menu" color="white" onPress={openDrawer} />
       </Appbar.Header>
       <View style={styles.content}>{pageItems}</View>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalHeaderText}>Myofit6</Text>
-            <IconButton
-              icon="close"
-              iconColor="white"
-              size={24}
-              onPress={closeModal}
-            />
-          </View>
-          <ScrollView style={styles.modalContent}>
-            {categoryDescriptions.map((item, index) => (
-              <View key={index} style={styles.categoryItem}>
-                <Text style={styles.categoryTitle}>{item.title}</Text>
-                <Text style={styles.categoryDescription}>
-                  {item.description}
-                </Text>
+          <Modal
+              animationType="slide"
+              transparent={true}
+              visible={modalVisible}
+              onRequestClose={closeModal}
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalHeaderText}>Myofit6</Text>
+                <IconButton
+                    icon="close"
+                    iconColor="white"
+                    size={24}
+                    onPress={closeModal}
+                />
               </View>
-            ))}
-          </ScrollView>
-        </View>
-      </Modal>
+              <ScrollView style={styles.modalContent}>
+                {categoryDescriptions.map((item, index) => (
+                    <View key={index} style={styles.categoryItem}>
+                      <Text style={styles.categoryTitle}>{item.title}</Text>
+                      <Text style={styles.categoryDescription}>
+                        {item.description}
+                      </Text>
+                    </View>
+                ))}
+              </ScrollView>
+            </View>
+          </Modal>
+
     </View>
   );
 }
@@ -199,11 +199,12 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     backgroundColor: "#189ACF",
+    // backgroundColor: "#cf1874",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 16,
+    // paddingBottom: 16,
   },
   modalHeaderText: {
     color: "white",

@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
     return (
-        <SafeAreaProvider>
+        // <SafeAreaProvider>
             <PaperProvider theme={DefaultTheme}>
                 <GestureHandlerRootView style={styles.container}>
                     <Stack screenOptions={{ headerShown: false }}>
@@ -15,7 +15,7 @@ export default function RootLayout() {
                     </Stack>
                 </GestureHandlerRootView>
             </PaperProvider>
-        </SafeAreaProvider>
+        // {/*</SafeAreaProvider>*/}
     );
 }
 

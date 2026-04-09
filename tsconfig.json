@@ -9,11 +9,13 @@
       "@/languages/*": ["app/languages/*"],
       "@/assets/*": ["assets/*"],
       "@/hooks/*": ["hooks/*"],
+      "@/views/*": ["app/views/*"],
 
       "@components/*": ["app/components/*"],
       "@languages/*": ["app/languages/*"],
       "@assets/*": ["assets/*"],
-      "@hooks/*": ["hooks/*"]
+      "@hooks/*": ["hooks/*"],
+      "@views/*": ["app/views/*"]
     }
   },
   "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]

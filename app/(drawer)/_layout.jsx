@@ -29,7 +29,7 @@ export default function DrawerLayout() {
         }}
       />
       <Drawer.Screen
-        name="programSelection"
+        name="programs"
         options={{
           title: "程序列表",
           drawerLabel: "程序列表",

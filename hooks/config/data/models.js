@@ -73,7 +73,7 @@ export const INDEX_MODEL_MAP = deepFreeze(
     id,
     name,
     dec,
-    screen: "programSelection",
+    screen: "programs",
     backgroundColor: COLORS[index],
   })),
 );

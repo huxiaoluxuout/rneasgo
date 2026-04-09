@@ -39,7 +39,7 @@ export default function HomeScreen() {
 
   const handleProgramPress = (program) => {
     router.push({
-      pathname: "/select-body-zone",
+      pathname: "/programs/select-body-zone",
       params: {
         programId: program.id,
         programName: program.name,

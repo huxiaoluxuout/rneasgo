@@ -1,21 +1,19 @@
 import {
   useLocalSearchParams,
   useNavigation,
-  useNavigationContainerRef,
   useRouter,
 } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { Appbar } from "react-native-paper";
 
-export default function SelectBodyZone() {
+export default function SelectElectrodePositioning() {
   const navigation = useNavigation();
   const router = useRouter();
-  const rootNavigation = useNavigationContainerRef();
   const params = useLocalSearchParams();
-  const { programId, programName, duration, category, title } = params;
+  const { programId, programName, duration, category, title, bodyZone } = params;
 
   const openDrawer = () => {
-    rootNavigation.dispatch({ type: "OPEN_DRAWER", target: "drawer-left" });
+    navigation.openDrawer();
   };
 
   return (
@@ -23,7 +21,7 @@ export default function SelectBodyZone() {
       <Appbar.Header style={styles.header}>
         <Appbar.BackAction color="white" onPress={() => router.back()} />
         <Appbar.Content
-          title={programName || "Select Body Zone"}
+          title="Select Electrode Position"
           color="white"
         />
         <Appbar.Action icon="menu" color="white" onPress={openDrawer} />
@@ -33,7 +31,10 @@ export default function SelectBodyZone() {
         <Text style={styles.infoText}>Program Name: {programName}</Text>
         <Text style={styles.infoText}>Duration: {duration}</Text>
         <Text style={styles.infoText}>Category: {category}</Text>
-        <Text style={styles.sectionTitle}>Select a body zone</Text>
+        <Text style={styles.infoText}>Body Zone: {bodyZone}</Text>
+        <Text style={styles.sectionTitle}>
+          Select electrode positioning
+        </Text>
       </View>
     </View>
   );

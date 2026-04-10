@@ -1,5 +1,6 @@
 import OpenSansText from "@components/OpenSansText";
 import i18n from "@languages/i18n";
+import { CommonActions } from "@react-navigation/native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -11,13 +12,23 @@ export default function CustomDrawerContent(props) {
 
   const [isEnabled, setIsEnabled] = useState(false);
 
-  // 切换语言
   const toggleLanguage = () => {
     if (!i18n.isInitialized) return;
     const newLang = i18n.language === "en" ? "zh" : "en";
     i18n.changeLanguage(newLang);
     setIsEnabled(newLang === "en");
   };
+
+  const navigateAndReset = (screenName) => {
+    props.navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: screenName }],
+      })
+    );
+    props.navigation.closeDrawer();
+  };
+
   return (
     <DrawerContentScrollView
       {...props}
@@ -35,25 +46,18 @@ export default function CustomDrawerContent(props) {
           label="首页"
           icon="home"
           active={props.state.routes[props.state.index].name === "index"}
-          onPress={() => {
-            props.navigation.navigate("index");
-            props.navigation.closeDrawer();
-          }}
+          onPress={() => navigateAndReset("index")}
         />
         <Drawer.Item
           label="设置"
           icon="cog"
           active={props.state.routes[props.state.index].name === "settings"}
-          onPress={() => {
-            props.navigation.navigate("settings");
-            props.navigation.closeDrawer();
-          }}
+          onPress={() => navigateAndReset("settings")}
         />
         <Drawer.Item
           label="个人资料"
           icon="account"
           onPress={() => {
-            // 跳转到个人资料页面
             console.log("跳转到个人资料");
             props.navigation.closeDrawer();
           }}

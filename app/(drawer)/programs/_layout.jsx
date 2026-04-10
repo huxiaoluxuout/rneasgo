@@ -10,6 +10,7 @@ export default function ProgramsLayout() {
       <Stack.Screen name="programSelection" />
       <Stack.Screen name="select-body-zone" />
       <Stack.Screen name="select-eletrode-positioning" />
+      <Stack.Screen name="link-device" />
     </Stack>
   );
 }

@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Appbar, IconButton ,Portal,PaperProvider } from "react-native-paper";
+import { Appbar, IconButton } from "react-native-paper";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -62,50 +62,6 @@ export default function HomeScreen() {
     },
   ];
   const list = INDEX_MODEL_MAP;
-  // const list = [
-  //   {
-  //     title: "SPORT",
-  //     screen: "programSelection",
-  //     name: "SPORT",
-  //     backgroundColor: "#4A90E2",
-  //   },
-  //   {
-  //     title: "AESTHETIC",
-  //     screen: "programSelection",
-  //     name: "AESTHETIC",
-  //     backgroundColor: "#50E3C2",
-  //   },
-  //   {
-  //     title: "MASSAGE",
-  //     screen: "programSelection",
-  //     name: "MASSAGE",
-  //     backgroundColor: "#59A8EB",
-  //   },
-  //   {
-  //     title: "VASCULAR",
-  //     screen: "programSelection",
-  //     name: "VASCULAR",
-  //     backgroundColor: "#41C5F4",
-  //   },
-  //   {
-  //     title: "PAIN",
-  //     screen: "programSelection",
-  //     name: "PAIN",
-  //     backgroundColor: "#66D7D1",
-  //   },
-  //   {
-  //     title: "REHABILITATION",
-  //     screen: "programSelection",
-  //     name: "REHABILITATION",
-  //     backgroundColor: "#7ED321",
-  //   },
-  //   {
-  //     title: "SUPPORT VIDEOS",
-  //     screen: "programSelection",
-  //     name: "SUPPORT VIDEOS",
-  //     backgroundColor: "#9013FE",
-  //   },
-  // ];
 
   const pageItems = list.map((item) => (
     <TouchableOpacity
@@ -136,35 +92,34 @@ export default function HomeScreen() {
         <Appbar.Action icon="menu" color="white" onPress={openDrawer} />
       </Appbar.Header>
       <View style={styles.content}>{pageItems}</View>
-          <Modal
-              animationType="slide"
-              transparent={true}
-              visible={modalVisible}
-              onRequestClose={closeModal}
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalHeaderText}>Myofit6</Text>
-                <IconButton
-                    icon="close"
-                    iconColor="white"
-                    size={24}
-                    onPress={closeModal}
-                />
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalHeaderText}>Myofit6</Text>
+            <IconButton
+              icon="close"
+              iconColor="white"
+              size={24}
+              onPress={closeModal}
+            />
+          </View>
+          <ScrollView style={styles.modalContent}>
+            {categoryDescriptions.map((item, index) => (
+              <View key={index} style={styles.categoryItem}>
+                <Text style={styles.categoryTitle}>{item.title}</Text>
+                <Text style={styles.categoryDescription}>
+                  {item.description}
+                </Text>
               </View>
-              <ScrollView style={styles.modalContent}>
-                {categoryDescriptions.map((item, index) => (
-                    <View key={index} style={styles.categoryItem}>
-                      <Text style={styles.categoryTitle}>{item.title}</Text>
-                      <Text style={styles.categoryDescription}>
-                        {item.description}
-                      </Text>
-                    </View>
-                ))}
-              </ScrollView>
-            </View>
-          </Modal>
-
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }

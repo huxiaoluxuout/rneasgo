@@ -1,29 +1,37 @@
-import {
-  useLocalSearchParams,
-  useNavigation,
-  useRouter,
-} from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Appbar } from "react-native-paper";
 
 export default function SelectElectrodePositioning() {
   const navigation = useNavigation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { programId, programName, duration, category, title, bodyZone } = params;
+  const { programId, programName, duration, category, title, bodyZone } =
+    params;
 
   const openDrawer = () => {
     navigation.openDrawer();
+  };
+
+  const navigateToLinkDevice = () => {
+    router.push({
+      pathname: "/programs/link-device",
+      params: {
+        programId,
+        programName,
+        duration,
+        category,
+        title,
+        bodyZone,
+      },
+    });
   };
 
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.header}>
         <Appbar.BackAction color="white" onPress={() => router.back()} />
-        <Appbar.Content
-          title="Select Electrode Position"
-          color="white"
-        />
+        <Appbar.Content title="Select Electrode Position" color="white" />
         <Appbar.Action icon="menu" color="white" onPress={openDrawer} />
       </Appbar.Header>
       <View style={styles.content}>
@@ -32,9 +40,13 @@ export default function SelectElectrodePositioning() {
         <Text style={styles.infoText}>Duration: {duration}</Text>
         <Text style={styles.infoText}>Category: {category}</Text>
         <Text style={styles.infoText}>Body Zone: {bodyZone}</Text>
-        <Text style={styles.sectionTitle}>
-          Select electrode positioning
-        </Text>
+        <Text style={styles.sectionTitle}>Select electrode positioning</Text>
+        <TouchableOpacity
+          style={styles.nextButton}
+          onPress={navigateToLinkDevice}
+        >
+          <Text style={styles.nextButtonText}>Next: Link Device</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -65,5 +77,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: "#F5F5F5",
     color: "#333",
+  },
+  nextButton: {
+    backgroundColor: "#189ACF",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginTop: 32,
+    alignItems: "center",
+  },
+  nextButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });

@@ -1,12 +1,11 @@
 import OpenSansText from "@components/OpenSansText";
 import i18n from "@languages/i18n";
-import { CommonActions } from "@react-navigation/native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
+import { CommonActions } from "@react-navigation/native";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View } from "react-native";
 import { Divider, Drawer, Switch } from "react-native-paper";
-
 export default function CustomDrawerContent(props) {
   const { t, ready } = useTranslation();
 
@@ -20,13 +19,13 @@ export default function CustomDrawerContent(props) {
   };
 
   const navigateAndReset = (screenName) => {
+    props.navigation.closeDrawer();
     props.navigation.dispatch(
       CommonActions.reset({
         index: 0,
         routes: [{ name: screenName }],
-      })
+      }),
     );
-    props.navigation.closeDrawer();
   };
 
   return (

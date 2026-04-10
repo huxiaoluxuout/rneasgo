@@ -1,11 +1,8 @@
-import {
-  useLocalSearchParams,
-  useNavigation,
-  useRouter,
-} from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Image,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -39,15 +36,38 @@ const backZones = [
   { id: 10, top: "79%", left: "60%" },
 ];
 
+const zoneInfoMap = {
+  6: ["Abdominals", "Obliques"],
+  7: ["Lower Back"],
+  2: ["Upper Back", "Neck"],
+  8: ["Lower Back"],
+  3: ["Shoulders", "Deltoids"],
+  4: ["Arms", "Biceps/Triceps"],
+  9: ["Quadriceps", "Hamstrings"],
+  10: ["Calves", "Shins"],
+};
+
 export default function SelectBodyZone() {
   const navigation = useNavigation();
   const router = useRouter();
   const params = useLocalSearchParams();
   const { programId, programName, duration, category, title } = params;
   const [viewMode, setViewMode] = useState("front");
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [selectedZoneForInfo, setSelectedZoneForInfo] = useState(null);
 
   const openDrawer = () => {
     navigation.openDrawer();
+  };
+
+  const openInfoModal = (zoneId) => {
+    setSelectedZoneForInfo(zoneId);
+    setInfoModalVisible(true);
+  };
+
+  const closeInfoModal = () => {
+    setInfoModalVisible(false);
+    setSelectedZoneForInfo(null);
   };
 
   const handleZonePress = (zoneId) => {
@@ -74,8 +94,15 @@ export default function SelectBodyZone() {
     <View style={styles.container}>
       <Appbar.Header style={styles.header}>
         <Appbar.BackAction color="white" onPress={() => router.back()} />
-        <Appbar.Content title={programName || "Select Body Zone"} color="white" />
-        <Appbar.Action icon="information-outline" color="white" onPress={() => {}} />
+        <Appbar.Content
+          title={programName || "Select Body Zone"}
+          color="white"
+        />
+        <Appbar.Action
+          icon="information-outline"
+          color="white"
+          onPress={() => openInfoModal(6)}
+        />
         <Appbar.Action icon="menu" color="white" onPress={openDrawer} />
       </Appbar.Header>
 
@@ -83,7 +110,11 @@ export default function SelectBodyZone() {
         <Text style={styles.sectionTitle}>Select a body zone</Text>
 
         <View style={styles.imageContainer}>
-          <Image source={imageSource} style={styles.bodyImage} resizeMode="contain" />
+          <Image
+            source={imageSource}
+            style={styles.bodyImage}
+            resizeMode="contain"
+          />
           {currentZones.map((zone, index) => (
             <TouchableOpacity
               key={`${viewMode}-${zone.id}-${index}`}
@@ -132,6 +163,38 @@ export default function SelectBodyZone() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        <Modal
+          visible={infoModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeInfoModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Info</Text>
+              </View>
+              <View style={styles.modalContent}>
+                {selectedZoneForInfo &&
+                  zoneInfoMap[selectedZoneForInfo]?.map((info, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.modalItem,
+                        index < zoneInfoMap[selectedZoneForInfo].length - 1 &&
+                          styles.modalItemBorder,
+                      ]}
+                      onPress={closeInfoModal}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.modalItemText}>{info}</Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -207,5 +270,45 @@ const styles = StyleSheet.create({
   },
   viewButtonTextActive: {
     color: "#fff",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "75%",
+    maxWidth: 320,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+  },
+  modalHeader: {
+    backgroundColor: "#189ACF",
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+  },
+  modalItem: {
+    paddingVertical: 16,
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  modalItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  modalItemText: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
   },
 });

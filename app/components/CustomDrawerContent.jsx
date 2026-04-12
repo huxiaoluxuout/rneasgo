@@ -54,6 +54,12 @@ export default function CustomDrawerContent(props) {
           onPress={() => navigateAndReset("settings")}
         />
         <Drawer.Item
+          label="My Sessions"
+          icon="history"
+          active={props.state.routes[props.state.index].name === "my-sessions"}
+          onPress={() => navigateAndReset("my-sessions")}
+        />
+        <Drawer.Item
           label="个人资料"
           icon="account"
           onPress={() => {

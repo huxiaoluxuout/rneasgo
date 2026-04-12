@@ -35,6 +35,13 @@ export default function DrawerLayout() {
           drawerLabel: "程序列表",
         }}
       />
+      <Drawer.Screen
+        name="my-sessions"
+        options={{
+          title: "My Sessions",
+          drawerLabel: "My Sessions",
+        }}
+      />
     </Drawer>
   );
 }

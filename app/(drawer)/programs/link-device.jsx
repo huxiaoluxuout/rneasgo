@@ -1,7 +1,12 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Appbar } from "react-native-paper";
 
 export default function LinkDevice() {
@@ -9,6 +14,19 @@ export default function LinkDevice() {
   const navigation = useNavigation();
   const params = useLocalSearchParams();
   const { programId, programName, duration, category, bodyZone } = params;
+
+  const handleStartProgram = () => {
+    router.push({
+      pathname: "/programs/devices-working",
+      params: {
+        programId,
+        programName,
+        duration,
+        category,
+        bodyZone,
+      },
+    });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -45,6 +63,14 @@ export default function LinkDevice() {
             )}
           </View>
         )}
+
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleStartProgram}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.startButtonText}>Start Program</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -93,5 +119,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginBottom: 4,
+  },
+  startButton: {
+    backgroundColor: "#189ACF",
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    marginTop: 24,
+    alignItems: "center",
+    width: "100%",
+  },
+  startButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
   },
 });

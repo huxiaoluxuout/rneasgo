@@ -11,6 +11,8 @@ import {
   View,
 } from "react-native";
 import { Appbar, IconButton } from "react-native-paper";
+import {filterByDec} from "../../hooks/config/utils/helpers";
+import {PROGRAMS} from "../../hooks/config/data/programs";
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -61,7 +63,15 @@ export default function HomeScreen() {
         "Rehabilitation programs help you recover from injuries and surgeries, restoring mobility and strength.",
     },
   ];
-  const list = INDEX_MODEL_MAP;
+  const list = [...INDEX_MODEL_MAP,{
+    id:'video',
+    name:{
+      en:'video'
+    },
+    dec:'',
+    screen: "video",
+    backgroundColor: '#5C69AF',
+  }];
 
   const pageItems = list.map((item) => (
     <TouchableOpacity

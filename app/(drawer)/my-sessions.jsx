@@ -124,6 +124,17 @@ export default function MySessions() {
                     key={item.id}
                     style={styles.favoriteItem}
                     activeOpacity={0.7}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/programs/programSelection",
+                        params: {
+                          category: group.category,
+                          title: item.name,
+                          itemId: item.id,
+                          duration: item.duration,
+                        },
+                      })
+                    }
                   >
                     <View style={styles.favoriteInfo}>
                       <Text style={styles.favoriteName}>{item.name}</Text>

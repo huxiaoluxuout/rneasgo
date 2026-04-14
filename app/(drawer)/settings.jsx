@@ -1,6 +1,7 @@
 import { useNavigation } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { Appbar } from "react-native-paper";
+import MyExpoVideoThumbnails from "../components/MyExpoVideoThumbnails";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -12,6 +13,8 @@ export default function SettingsScreen() {
       </Appbar.Header>
       <View style={styles.content}>
         <Text>设置页面内容</Text>
+          <MyExpoVideoThumbnails></MyExpoVideoThumbnails>
+
       </View>
     </View>
   );

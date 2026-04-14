@@ -15,7 +15,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import { useState, useEffect } from "react";
 
 const VIDEO_URL = "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_720p_h264.mov";
-
+// const VIDEO_URL = require("../../assets/videos/v1.mp4");
 const videoList = [
   {
     id: 1,

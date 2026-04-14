@@ -12,10 +12,18 @@ import {
 import { Appbar } from "react-native-paper";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  saveVideoHistory,
+  saveVideoProgress,
+  getVideoProgress,
+  addToFavorites,
+  removeFromFavorites,
+  isFavorite,
+} from "../../utils/storage";
 
-const VIDEO_URL = "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_720p_h264.mov";
-// const VIDEO_URL = require("../../assets/videos/v1.mp4");
+// const VIDEO_URL = "https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_720p_h264.mov";
+const VIDEO_URL = require("../../assets/videos/v1.mp4");
 const videoList = [
   {
     id: 1,
@@ -71,14 +79,39 @@ export default function VideoScreen() {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
+  const [favorites, setFavorites] = useState(new Set());
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    try {
+      const favList = await isFavorite(0);
+      if (favList) {
+        setFavorites(new Set(videoList.map((v) => v.id)));
+      }
+    } catch (error) {
+      console.log("Error loading favorites");
+    }
+  };
 
   const player = useVideoPlayer(currentVideo?.videoSource);
 
   useEffect(() => {
     if (modalVisible) {
       player.play();
+      saveVideoHistory(currentVideo);
+      getVideoProgress(currentVideo?.id).then((progress) => {
+        if (progress?.position) {
+          // 可以在这里恢复播放位置
+        }
+      });
     } else {
       player.pause();
+      if (currentVideo) {
+        saveVideoProgress(currentVideo.id, { position: Date.now() });
+      }
     }
   }, [modalVisible]);
 
@@ -99,6 +132,25 @@ export default function VideoScreen() {
     }, 300);
   };
 
+  const toggleFavorite = useCallback(async (item) => {
+    try {
+      const isFav = favorites.has(item.id);
+      if (isFav) {
+        await removeFromFavorites(item.id);
+        setFavorites((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(item.id);
+          return newSet;
+        });
+      } else {
+        await addToFavorites(item);
+        setFavorites((prev) => new Set(prev).add(item.id));
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
+  }, [favorites]);
+
   const renderVideoItem = ({ item }) => (
     <TouchableOpacity style={styles.videoCard} activeOpacity={0.7} onPress={() => playVideo(item)}>
       <View style={styles.thumbnailContainer}>
@@ -114,6 +166,20 @@ export default function VideoScreen() {
         <Text style={styles.videoTitle}>{item.title}</Text>
         <Text style={styles.videoCategory}>{item.category}</Text>
       </View>
+      <TouchableOpacity
+        style={[styles.favoriteButton, favorites.has(item.id) && styles.favoriteButtonActive]}
+        onPress={(e) => {
+          e.stopPropagation();
+          toggleFavorite(item);
+        }}
+        activeOpacity={0.7}
+      >
+        <MaterialCommunityIcons
+          name={favorites.has(item.id) ? "heart" : "heart-outline"}
+          size={24}
+          color={favorites.has(item.id) ? "#FF4757" : "#999"}
+        />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -269,6 +335,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#772f94ff",
     fontWeight: "500",
+  },
+  favoriteButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  favoriteButtonActive: {
+    backgroundColor: "rgba(255, 71, 87, 0.1)",
   },
   videoModalContainer: {
     flex: 1,

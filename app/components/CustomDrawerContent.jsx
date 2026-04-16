@@ -54,10 +54,10 @@ export default function CustomDrawerContent(props) {
           onPress={() => navigateAndReset("settings")}
         />
         <Drawer.Item
-          label="My Sessions"
-          icon="history"
-          active={props.state.routes[props.state.index].name === "my-sessions"}
-          onPress={() => navigateAndReset("my-sessions")}
+            label="测试BLE"
+            icon="cog"
+            active={props.state.routes[props.state.index].name === "testble"}
+            onPress={() => navigateAndReset("testble")}
         />
         <Drawer.Item
           label="个人资料"
@@ -66,6 +66,12 @@ export default function CustomDrawerContent(props) {
             console.log("跳转到个人资料");
             props.navigation.closeDrawer();
           }}
+        />
+        <Drawer.Item
+            label="My Sessions"
+            icon="history"
+            active={props.state.routes[props.state.index].name === "my-sessions"}
+            onPress={() => navigateAndReset("my-sessions")}
         />
       </Drawer.Section>
 

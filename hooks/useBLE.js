@@ -171,12 +171,13 @@ export const useBLE = () => {
 
   }, []);
 
-  const startNotification = useCallback((serviceUUID, characteristicUUID, callback) => {
+  const startNotification = useCallback((deviceId, serviceUUID, characteristicUUID, callback, options = {}) => {
     return BLEService.startNotification(
-      null,
+      deviceId || null,
       serviceUUID,
       characteristicUUID,
-      callback
+      callback,
+      options
     );
   }, []);
 

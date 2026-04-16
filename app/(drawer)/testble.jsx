@@ -158,16 +158,29 @@ export default function TestBLEScreen() {
         setNotifications(prev => ({ ...prev, [key]: false }));
         Alert.alert('成功', '已停止通知订阅');
       } else {
-        await startNotification(serviceUUID, characteristicUUID, (data) => {
-          console.log('收到通知数据:', data);
-          setNotificationData(prev => ({
-            ...prev,
-            [key]: {
-              data: data,
-              timestamp: new Date().toLocaleTimeString(),
-            },
-          }));
-        });
+        await startNotification(
+          selectedDeviceId,
+          serviceUUID,
+          characteristicUUID,
+          (base64Value, hexString, completeFrames) => {
+            console.log('收到通知数据:', base64Value, hexString, completeFrames);
+
+            setNotificationData(prev => ({
+              ...prev,
+              [key]: {
+                data: hexString,
+                timestamp: new Date().toLocaleTimeString(),
+              },
+            }));
+          },
+          {
+            enableFrameReassembly: true,      // 启用粘包重组
+            frameHeader: 'AA55',             // 自定义帧头
+            frameTail: '55AA',               // 自定义帧尾
+            onFrameComplete: (frameHex) => { // 每收到完整帧时回调
+              console.log('完整帧:', frameHex);
+            }
+          });
         setNotifications(prev => ({ ...prev, [key]: true }));
         Alert.alert('成功', '已开启通知订阅');
       }
@@ -422,7 +435,7 @@ export default function TestBLEScreen() {
 
         <FlatList
           data={devices}
-          keyExtractor={(item, index) => item.id+index}
+          keyExtractor={(item, index) => item.id + index}
           renderItem={renderDeviceItem}
           ListEmptyComponent={renderEmptyList}
           scrollEnabled={false}

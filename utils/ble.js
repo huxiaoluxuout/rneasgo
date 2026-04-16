@@ -426,33 +426,46 @@ class BLEService {
       );
     }
 
-    device.monitorCharacteristicForService(
-      serviceUUID,
-      characteristicUUID,
-      (error, characteristic) => {
-        if (error) {
-          console.error('通知监听错误:', error);
-          return;
-        }
-        if (callback) {
-          const base64Value = characteristic.value;
-          if (enableFrameReassembly) {
-            const bytes = base64ToBytes(base64Value);
-            const hexString = bytesToHex(bytes);
-            const frames = bleFrameReassembler.processIncomingHex(
-              hexString,
-              device.id,
-              characteristicUUID,
-              frameHeader,
-              frameTail
-            );
-            callback(base64Value, hexString, frames);
-          } else {
-            callback(base64Value);
+    try {
+      device.monitorCharacteristicForService(
+        serviceUUID,
+        characteristicUUID,
+        (error, characteristic) => {
+          if (error) {
+            if (error.message && error.message.includes('disconnected')) {
+              console.warn('设备已断开连接:', error.message);
+              this.handleDisconnection(device);
+              return;
+            }
+            console.error('通知监听错误:', error);
+            return;
+          }
+          if (callback) {
+            const base64Value = characteristic.value;
+            if (enableFrameReassembly) {
+              const bytes = base64ToBytes(base64Value);
+              const hexString = bytesToHex(bytes);
+              const frames = bleFrameReassembler.processIncomingHex(
+                hexString,
+                device.id,
+                characteristicUUID,
+                frameHeader,
+                frameTail
+              );
+              callback(base64Value, hexString, frames);
+            } else {
+              callback(base64Value);
+            }
           }
         }
+      );
+    } catch (error) {
+      if (error.message && error.message.includes('disconnected')) {
+        this.handleDisconnection(device);
+        throw new Error('设备在启动通知监听前已断开连接');
       }
-    );
+      throw error;
+    }
   }
 
   processIncomingData(hexString, deviceId, charUuid, frameHeader = 'AA55', frameTail = '55AA') {
@@ -465,15 +478,37 @@ class BLEService {
 
   async stopNotification(deviceId, serviceUUID, characteristicUUID) {
     const device = this.getDevice(deviceId);
-    
+
     if (!device) {
-      throw new Error('设备未找到或未连接');
+      console.warn('设备未找到或已断开连接，跳过停止通知');
+      return;
     }
 
-    return device.cancelMonitoringCharacteristicForService(
-      serviceUUID,
-      characteristicUUID
-    );
+    try {
+      await device.cancelMonitoring();
+      bleFrameReassembler.removeChannel(
+        deviceId || device.id,
+        characteristicUUID
+      );
+    } catch (error) {
+      if (error.message && error.message.includes('disconnected')) {
+        console.warn('设备已断开连接:', error.message);
+        this.handleDisconnection(device);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  handleDisconnection(device) {
+    if (device && device.id) {
+      this.connectedDevices.delete(device.id);
+    }
+    if (this.device && this.device.id === device?.id) {
+      this.device = null;
+      this.isConnected = false;
+    }
+    this.emit('disconnected', device);
   }
 
   getRSSI(deviceId) {

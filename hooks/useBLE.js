@@ -181,9 +181,9 @@ export const useBLE = () => {
     );
   }, []);
 
-  const stopNotification = useCallback((serviceUUID, characteristicUUID) => {
+  const stopNotification = useCallback((deviceId, serviceUUID, characteristicUUID) => {
     return BLEService.stopNotification(
-      null,
+      deviceId || null,
       serviceUUID,
       characteristicUUID
     );

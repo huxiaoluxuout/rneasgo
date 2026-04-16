@@ -154,7 +154,7 @@ export default function TestBLEScreen() {
 
     try {
       if (notifications[key]) {
-        await stopNotification(serviceUUID, characteristicUUID);
+        await stopNotification(selectedDeviceId, serviceUUID, characteristicUUID);
         setNotifications(prev => ({ ...prev, [key]: false }));
         Alert.alert('成功', '已停止通知订阅');
       } else {

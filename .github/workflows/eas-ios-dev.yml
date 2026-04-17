@@ -37,21 +37,24 @@ jobs:
           # 还原 .mobileprovision 描述文件
           echo "${{ secrets.IOS_PROV_PROFILE }}" > ./certs/profile.mobileprovision
 
-      - name: 🔑 Update eas.json with Certificate Paths
-        # 使用 jq 工具直接修改 eas.json 文件，告诉 EAS 去哪里找证书
+      - name: 🔑 Inject Credentials into eas.json
+        # 这一步强制修改 eas.json，让 EAS CLI 认为配置已经完成了
         run: |
-          # 读取当前的 eas.json，修改 "preview" 配置
-          # 注意：这里假设你的 eas.json 里有一个 "preview" 环境
-          jq '.build.preview.ios.provisioningProfile = "./certs/profile.mobileprovision" | .build.preview.ios.distributionCertificate = "./certs/cert.p12" | .build.preview.ios.distributionCertificatePassword = "${{ secrets.IOS_DIST_CERT_PWD }}"' eas.json > temp.json && mv temp.json eas.json      
+          # 1. 备份原始文件
+          cp eas.json eas.json.bak
+          
+          # 2. 使用 sed 修改 eas.json
+          # 我们将 "ios": {} 替换为包含证书路径的配置
+          # 注意：这里假设你的 eas.json 里 "preview" 下面有 "ios": {}
+          sed -i 's/"ios": {}/"ios": {\n      "provisioningProfile": ".\/certs\/profile.mobileprovision",\n      "distributionCertificate": {\n        "path": ".\/certs\/cert.p12",\n        "password": "${{ secrets.IOS_DIST_CERT_PWD }}"\n      }\n    }/g' eas.json
+          
+          # 3. 打印修改后的文件以便调试
+          cat eas.json
+
       - name: 🏗️ Run EAS Build
-        # 使用环境变量告诉 EAS 使用我们刚才还原的证书，而不是让它自动去 Apple 申请
         run: |
           eas build \
             --platform ios \
             --profile preview \
             --non-interactive \
             --no-wait
-        env:
-          EXPO_IOS_DIST_CERT_PATH: ./certs/cert.p12
-          EXPO_IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PWD }}
-          EXPO_IOS_PROV_PROFILE_PATH: ./certs/profile.mobileprovision

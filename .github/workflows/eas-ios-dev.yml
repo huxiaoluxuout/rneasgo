@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: npm # 如果你用 npm 请改为 npm
+          cache: npm
 
       - name: 🛠️ Setup EAS
         uses: expo/expo-github-action@v8
@@ -27,7 +27,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 📥 Install dependencies
-        run: npm install # 如果你用 npm 请改为 npm install
+        run: npm install 
 
       - name: 📝 Prepare Custom Certificates
         # 这一步是将 GitHub Secrets 里的字符串还原成 EAS 能识别的临时文件

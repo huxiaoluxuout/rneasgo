@@ -37,19 +37,24 @@ jobs:
           # 还原 .mobileprovision 描述文件
           echo "${{ secrets.IOS_PROV_PROFILE }}" > ./certs/profile.mobileprovision
 
-      - name: 🔑 Inject Credentials into eas.json
-        # 这一步强制修改 eas.json，让 EAS CLI 认为配置已经完成了
+      - name: 🔑 Configure EAS Locally
+        # 这一步创建一个本地的 credentials.json 文件
+        # EAS CLI 会优先读取这个文件，从而跳过服务器配置检查
         run: |
-          # 1. 备份原始文件
-          cp eas.json eas.json.bak
-          
-          # 2. 使用 sed 修改 eas.json
-          # 我们将 "ios": {} 替换为包含证书路径的配置
-          # 注意：这里假设你的 eas.json 里 "preview" 下面有 "ios": {}
-          sed -i 's/"ios": {}/"ios": {\n      "provisioningProfile": ".\/certs\/profile.mobileprovision",\n      "distributionCertificate": {\n        "path": ".\/certs\/cert.p12",\n        "password": "${{ secrets.IOS_DIST_CERT_PWD }}"\n      }\n    }/g' eas.json
-          
-          # 3. 打印修改后的文件以便调试
-          cat eas.json
+          mkdir -p .expo
+          cat > .expo/credentials.json << 'EOF'
+          {
+            "ios": {
+              "provisioningProfilePath": "./certs/profile.mobileprovision",
+              "distributionCertificate": {
+                "path": "./certs/cert.p12",
+                "password": "${{ secrets.IOS_DIST_CERT_PWD }}"
+              }
+            }
+          }
+          EOF
+          # 打印文件内容以确认格式正确
+          cat .expo/credentials.json
 
       - name: 🏗️ Run EAS Build
         run: |

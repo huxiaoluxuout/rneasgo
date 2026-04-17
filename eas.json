@@ -25,6 +25,5 @@
   },
   "submit": {
     "production": {}
-  },
-  "pm": "npm"
+  }
 }

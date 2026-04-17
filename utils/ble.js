@@ -481,21 +481,33 @@ class BLEService {
 
     if (!device) {
       console.warn('设备未找到或已断开连接，跳过停止通知');
+      bleFrameReassembler.removeChannel(deviceId, characteristicUUID);
       return;
     }
 
     try {
-      await device.cancelMonitoring();
+      if (typeof device.cancelMonitoring === 'function') {
+        await device.cancelMonitoring();
+      } else {
+        console.warn('cancelMonitoring 方法不可用，设备可能已断开');
+      }
       bleFrameReassembler.removeChannel(
         deviceId || device.id,
         characteristicUUID
       );
     } catch (error) {
+      bleFrameReassembler.removeChannel(
+        deviceId || device.id,
+        characteristicUUID
+      );
       if (error.message && error.message.includes('disconnected')) {
         console.warn('设备已断开连接:', error.message);
         this.handleDisconnection(device);
+      } else if (error.message && error.message.includes('cancelMonitoring is not a function')) {
+        console.warn('停止通知时设备已失效，已清理资源');
+        this.handleDisconnection(device);
       } else {
-        throw error;
+        console.error('停止通知失败:', error.message);
       }
     }
   }

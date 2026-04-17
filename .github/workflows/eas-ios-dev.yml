@@ -37,7 +37,18 @@ jobs:
           echo "${{ secrets.IOS_DIST_CERT }}" | base64 --decode > ./certs/cert.p12
           # 还原 .mobileprovision 描述文件
           echo "${{ secrets.IOS_PROV_PROFILE }}" > ./certs/profile.mobileprovision
-
+      - name: 🔑 Configure EAS Credentials
+        run: |
+          eas credentials:configure \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --keystore-path ./certs/cert.p12 \
+            --keystore-password "${{ secrets.IOS_DIST_CERT_PWD }}" \
+            --dist-cert-path ./certs/cert.p12 \
+            --dist-cert-password "${{ secrets.IOS_DIST_CERT_PWD }}" \
+            --provisioning-profile-path ./certs/profile.mobileprovision
+            
       - name: 🏗️ Run EAS Build
         # 使用环境变量告诉 EAS 使用我们刚才还原的证书，而不是让它自动去 Apple 申请
         run: |

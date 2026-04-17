@@ -23,8 +23,11 @@ export const useBLE = () => {
   useEffect(() => {
     BLEService.on('deviceFound', (device) => {
       setDevices(prev => {
-        if (prev.find(d => d.id === device.id)) {
-          return prev;
+        const existingIndex = prev.findIndex(d => d.id === device.id);
+        if (existingIndex !== -1) {
+          const updated = [...prev];
+          updated[existingIndex] = device;
+          return updated;
         }
         return [...prev, device];
       });

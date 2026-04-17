@@ -33,8 +33,8 @@ jobs:
         # 这一步是将 GitHub Secrets 里的字符串还原成 EAS 能识别的临时文件
         run: |
           mkdir -p ./certs
-          # 还原 .p12 证书 (使用 certutil 解码，因为我们在方法三里用了 Base64 格式)
-          echo "${{ secrets.IOS_DIST_CERT }}" | certutil -decode - ./certs/cert.p12
+          # 【修改点】使用 Linux 原生的 base64 命令解码，而不是 Windows 的 certutil
+          echo "${{ secrets.IOS_DIST_CERT }}" | base64 --decode > ./certs/cert.p12
           # 还原 .mobileprovision 描述文件
           echo "${{ secrets.IOS_PROV_PROFILE }}" > ./certs/profile.mobileprovision
 

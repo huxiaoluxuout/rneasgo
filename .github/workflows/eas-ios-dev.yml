@@ -1,0 +1,52 @@
+name: EAS Build with Custom Certs
+
+on:
+  push:
+    branches:
+      - dev-ble  # 如果你的主分支叫 master，请改为 master
+  workflow_dispatch: # 允许手动在 GitHub 页面点击触发
+
+jobs:
+  build:
+    name: Build iOS
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🛒 Checkout repository
+        uses: actions/checkout@v3
+
+      - name: 📦 Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: npm # 如果你用 npm 请改为 npm
+
+      - name: 🛠️ Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📥 Install dependencies
+        run: npm install # 如果你用 npm 请改为 npm install
+
+      - name: 📝 Prepare Custom Certificates
+        # 这一步是将 GitHub Secrets 里的字符串还原成 EAS 能识别的临时文件
+        run: |
+          mkdir -p ./certs
+          # 还原 .p12 证书 (使用 certutil 解码，因为我们在方法三里用了 Base64 格式)
+          echo "${{ secrets.IOS_DIST_CERT }}" | certutil -decode - ./certs/cert.p12
+          # 还原 .mobileprovision 描述文件
+          echo "${{ secrets.IOS_PROV_PROFILE }}" > ./certs/profile.mobileprovision
+
+      - name: 🏗️ Run EAS Build
+        # 使用环境变量告诉 EAS 使用我们刚才还原的证书，而不是让它自动去 Apple 申请
+        run: |
+          eas build \
+            --platform ios \
+            --profile preview \
+            --non-interactive \
+            --no-wait
+        env:
+          EXPO_IOS_DIST_CERT_PATH: ./certs/cert.p12
+          EXPO_IOS_DIST_CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PWD }}
+          EXPO_IOS_PROV_PROFILE_PATH: ./certs/profile.mobileprovision

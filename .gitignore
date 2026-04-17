@@ -43,4 +43,4 @@ app-example
 /android
 .vscode/
 .idea/
-package-lock.json
+# package-lock.json

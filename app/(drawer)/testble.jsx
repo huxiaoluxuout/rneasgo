@@ -56,16 +56,22 @@ export default function TestBLEScreen() {
 
   const handleConnect = async (device) => {
     try {
+      console.log('连接设备...');
+      console.time('设备信息');
       setSelectedDeviceId(device.id);
       await connectToDevice(device.id);
-
+      console.log('连接成功');
+      console.timeEnd('设备信息');
       try {
-        setTimeout(async () => {
+        // setTimeout(async () => {
+        console.log('开始服务发现...');
           const discoveredServices = await discoverServices();
           setServices(discoveredServices);
+          console.log('服务发现完成');
+          // console.log('发现的服务:', JSON.stringify(discoveredServices, null, 2));
           // console.log('发现的服务:', JSON.stringify(discoveredServices, null, 2));
 
-        }, 2000);
+        // }, 2000);
       } catch (serviceErr) {
         console.error('获取服务失败:', serviceErr);
       }
@@ -79,6 +85,7 @@ export default function TestBLEScreen() {
   };
 
   const handleDisconnect = async () => {
+    console.log('断开连接...');
     try {
       Object.keys(notifications).forEach(key => {
         if (notifications[key]) {
@@ -91,7 +98,8 @@ export default function TestBLEScreen() {
       setServices([]);
       setNotifications({});
       setNotificationData({});
-      Alert.alert('成功', '已断开连接');
+      // Alert.alert('成功', '已断开连接');
+      console.log('断开连接成功');
     } catch (err) {
       console.error('断开失败:', err);
       Alert.alert('错误', err.message || '断开连接失败');
@@ -131,7 +139,7 @@ export default function TestBLEScreen() {
         bytes: bytes,
       });
 
-      Alert.alert('成功', `数据已写入\n服务: ${writeServiceUUID}\n特征: ${writeCharacteristicUUID}\n数据: ${hexData}`);
+      // Alert.alert('成功', `数据已写入\n服务: ${writeServiceUUID}\n特征: ${writeCharacteristicUUID}\n数据: ${hexData}`);
     } catch (err) {
       console.error('写入失败:', err);
       Alert.alert('写入失败', err.message || '无法写入数据到设备');

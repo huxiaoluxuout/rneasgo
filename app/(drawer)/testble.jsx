@@ -190,7 +190,7 @@ export default function TestBLEScreen() {
             }
           });
         setNotifications(prev => ({ ...prev, [key]: true }));
-        Alert.alert('成功', '已开启通知订阅');
+        // Alert.alert('成功', '已开启通知订阅');
       }
     } catch (err) {
       console.error('通知操作失败:', err);
@@ -508,6 +508,7 @@ export default function TestBLEScreen() {
               提示: 点击特征值的 W 徽章可快速填入 UUID
             </Text>
           </View>
+          
         )}
 
         {(receivedFrames.length > 0 || rawDataList.length > 0) && (

@@ -3,19 +3,20 @@ import { StyleSheet } from 'react-native';
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DefaultTheme, Provider as PaperProvider } from 'react-native-paper';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { BLEProvider } from '../contexts/BLEContext';
 
 export default function RootLayout() {
     return (
-        // <SafeAreaProvider>
             <PaperProvider theme={DefaultTheme}>
-                <GestureHandlerRootView style={styles.container}>
-                    <Stack screenOptions={{ headerShown: false }}>
-                        <Stack.Screen name="(drawer)" />
-                    </Stack>
-                </GestureHandlerRootView>
+                <BLEProvider>
+                    <GestureHandlerRootView style={styles.container}>
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen name="(drawer)" />
+                        </Stack>
+                    </GestureHandlerRootView>
+                </BLEProvider>
             </PaperProvider>
-        // {/*</SafeAreaProvider>*/}
     );
 }
 

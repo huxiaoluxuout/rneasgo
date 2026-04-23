@@ -1,5 +1,5 @@
-import { useNavigation } from "expo-router";
-import { StyleSheet, Text, View, Alert, ActivityIndicator, TextInput, ScrollView, Platform, Button, ProgressViewIOS } from "react-native";
+import { useNavigation, useRouter } from "expo-router";
+import { StyleSheet, Text, View, Alert, ActivityIndicator, TextInput, ScrollView, Platform, ProgressViewIOS } from "react-native";
 import { Appbar, Button as PaperButton } from "react-native-paper";
 import { useEffect, useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
@@ -12,15 +12,22 @@ import {
   checkNetworkAndDownload
 } from "../../utils/storage";
 import http from "../../utils/api";
-import useBLE from '../../hooks/useBLE';
+import { useBLE } from '../../contexts/BLEContext';
 import { ylxBleOTA } from '../../hooks/useOTA';
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
   const [downloading, setDownloading] = useState(false);
   const [downloadStatus, setDownloadStatus] = useState('');
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  // 通用文件下载相关状态
+  const [isDownloadingFile, setIsDownloadingFile] = useState(false);
+  const [fileDownloadProgress, setFileDownloadProgress] = useState(0);
+  const [fileDownloadStatus, setFileDownloadStatus] = useState('');
+  const [downloadedFilePath, setDownloadedFilePath] = useState(null);
 
   // OTA 升级相关状态
   const {
@@ -168,15 +175,33 @@ export default function SettingsScreen() {
     };
   };
 
-  // 开始 OTA 升级流程 - 改进版，带完整的错误处理
+  // 开始 OTA 升级流程 - 简化版，使用已连接的设备
   const startOTAUpgrade = async () => {
     try {
-      // 检查蓝牙是否初始化
+      // 1. 检查蓝牙是否初始化
       if (!isInitialized) {
         throw new Error('蓝牙未初始化，请稍后再试');
       }
 
-      // 1. 检查本地文件是否存在
+      // 2. 检查是否有已连接的设备（关键改动：不再自动扫描连接）
+      if (!isConnected || !connectedDevice) {
+        Alert.alert(
+          '⚠️ 未连接设备',
+          '请先在"蓝牙测试"页面连接设备后再进行 OTA 升级\n\n是否前往蓝牙测试页面？',
+          [
+            { text: '取消', style: 'cancel' },
+            { 
+              text: '前往连接', 
+              onPress: () => router.push('/(drawer)/testble')
+            }
+          ]
+        );
+        return;
+      }
+
+      console.log('[OTA] 使用已连接的设备:', connectedDevice.name || connectedDevice.id);
+
+      // 3. 检查本地文件是否存在
       const fileName = 'LT5009_Main_ADD1_GR5513.hex';
       setOtaStatus('reading');
       setOtaMessage('正在检查固件文件...');
@@ -191,7 +216,7 @@ export default function SettingsScreen() {
 
       console.log('[OTA] 找到固件文件:', fileInfo.path, '大小:', fileInfo.size);
 
-      // 2. 读取文件内容
+      // 4. 读取文件内容
       setOtaMessage('正在读取固件文件...');
       
       const fileResult = await readLocalFileContent(fileInfo.path);
@@ -201,89 +226,36 @@ export default function SettingsScreen() {
 
       console.log('[OTA] 文件读取成功，长度:', fileResult.content.length);
 
-      // 3. 检查蓝牙连接状态
-      let targetDevice = connectedDevice;
-      
-      if (!isConnected || !targetDevice) {
-        setOtaStatus('scanning');
-        setOtaMessage('正在请求蓝牙权限...');
-        
-        try {
-          await requestPermission();
-        } catch (permErr) {
-          throw new Error('蓝牙权限被拒绝: ' + permErr.message);
-        }
-        
-        setOtaMessage('正在扫描蓝牙设备...');
-        
-        let foundDevices;
-        try {
-          foundDevices = await startScan([], { scanTimeout: 8000 });
-        } catch (scanErr) {
-          throw new Error('扫描设备失败: ' + (scanErr.message || 'Unknown error'));
-        }
-        
-        console.log('[OTA] 扫描到设备:', foundDevices.length);
-        
-        if (foundDevices.length === 0) {
-          throw new Error('未找到蓝牙设备，请确保设备已开启并靠近手机');
-        }
-        
-        // 选择第一个设备连接
-        const deviceToConnect = foundDevices[0];
-        setOtaStatus('connecting');
-        setOtaMessage(`正在连接到 ${deviceToConnect.name || deviceToConnect.id}...`);
-        
-        try {
-          await connectToDevice(deviceToConnect.id);
-          targetDevice = deviceToConnect;
-          setSelectedDeviceForOTA(deviceToConnect);
-          
-          // 等待服务发现和连接稳定
-          setOtaMessage('正在发现蓝牙服务...');
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // 再次检查连接状态
-          if (!isConnected) {
-            throw new Error('设备连接失败');
-          }
-        } catch (connectErr) {
-          throw new Error('连接设备失败: ' + connectErr.message);
-        }
-      } else {
-        setSelectedDeviceForOTA(targetDevice);
-        console.log('[OTA] 使用已连接的设备:', targetDevice.name || targetDevice.id);
-      }
-
-      // 4. 配置 OTA 写入方法（带重试机制）
+      // 5. 配置 OTA 写入方法（带重试机制）
       configureOTAWrite();
 
-      // 5. 开始 OTA 升级
+      // 6. 开始 OTA 升级
       setOtaStatus('upgrading');
       setOtaMessage('正在解析固件文件...');
       
       const deviceInfo = {
-        deviceId: targetDevice?.id,
+        deviceId: connectedDevice?.id,
         serviceId: '0000fff0-0000-1000-8000-00805f9b34fb',
         writeCharId: '0000fff2-0000-1000-8000-00805f9b34fb',
       };
 
       console.log('[OTA] 开始升级流程，设备信息:', deviceInfo);
+      console.log('[OTA] 已连接设备名称:', connectedDevice.name || connectedDevice.localName || '未知');
 
       ylxBleOTA.startOTA(deviceInfo, fileResult.content, (result) => {
         console.log('[OTA] 固件解析完成:', result);
-        setOtaMessage(`✓ 固件解析完成\n共 ${result.totalBty16Packets} 个数据包\n起始地址: 0x${result.startAddress?.toString(16)?.toUpperCase()}`);
+        setOtaMessage(`✓ 固件解析完成\n共 ${result.totalBty16Packets} 个数据包\n起始地址: 0x${result.startAddress?.toString(16)?.toUpperCase()}\n目标设备: ${connectedDevice?.name || connectedDevice?.id}`);
         
-        // 发送握手包前等待用户确认
+        // 发送握手包
         setTimeout(async () => {
           try {
             // 再次检查连接状态
-            if (!isConnected) {
-              throw new Error('设备已断开连接');
+            if (!isConnected || !connectedDevice) {
+              throw new Error('设备已断开连接，请在蓝牙测试页面重新连接');
             }
 
             setOtaStatus('upgrading');
-            setOtaMessage('正在发送握手包...');
+            setOtaMessage(`正在发送握手包到 ${connectedDevice.name || connectedDevice.id}...`);
             console.log('[OTA] 发送握手包');
             
             ylxBleOTA.sendHandshake();
@@ -292,12 +264,12 @@ export default function SettingsScreen() {
             setTimeout(async () => {
               try {
                 // 再次验证连接
-                if (!isConnected) {
+                if (!isConnected || !connectedDevice) {
                   throw new Error('设备在握手过程中断开连接');
                 }
 
                 setOtaStatus('upgrading');
-                setOtaMessage('开始发送数据包...\n(这可能需要几分钟时间)');
+                setOtaMessage(`开始向 ${connectedDevice.name || connectedDevice.id} 发送数据包...\n(这可能需要几分钟时间)`);
                 
                 console.log('[OTA] 开始发送数据包');
                 
@@ -312,9 +284,9 @@ export default function SettingsScreen() {
                         const progress = ylxBleOTA.getProgress();
                         setOtaProgress(progress);
                         setOtaMessage(
-                          `正在升级... ${progress.percent}%\n` +
-                          `(${progress.current}/${progress.total} 包)\n` +
-                          `剩余: ${Math.round((progress.total - progress.current) * 30 / 1000)}秒`
+                          `正在升级 ${connectedDevice?.name || connectedDevice?.id}...\n` +
+                          `${progress.percent}% (${progress.current}/${progress.total} 包)\n` +
+                          `预计剩余: ${Math.round((progress.total - progress.current) * 50 / 1000)}秒`
                         );
                         
                         consecutiveErrors = 0;  // 重置连续错误计数
@@ -322,7 +294,7 @@ export default function SettingsScreen() {
                         if (isLastPacket) {
                           setTimeout(async () => {
                             try {
-                              if (!isConnected) {
+                              if (!isConnected || !connectedDevice) {
                                 throw new Error('设备已断开连接');
                               }
 
@@ -331,8 +303,19 @@ export default function SettingsScreen() {
                               
                               await ylxBleOTA.sendFinish();
                               setOtaStatus('completed');
-                              setOtaMessage('✅ OTA 升级完成！\n设备将自动重启并应用新固件');
-                              Alert.alert('成功', 'OTA 升级完成！\n\n设备将自动重启并应用新固件。\n\n请等待约10-20秒让设备完成重启。');
+                              setOtaMessage(
+                                `✅ OTA 升级完成！\n\n` +
+                                `设备: ${connectedDevice?.name || connectedDevice?.id}\n` +
+                                `数据包: ${ylxBleOTA.getProgress().total} 个\n\n` +
+                                `设备将自动重启并应用新固件`
+                              );
+                              Alert.alert(
+                                '🎉 OTA 升级成功！', 
+                                `设备: ${connectedDevice?.name || connectedDevice?.id}\n\n` +
+                                `设备将自动重启并应用新固件。\n\n` +
+                                `请等待约10-20秒让设备完成重启。`,
+                                [{ text: '我知道了', style: 'default' }]
+                              );
                             } catch (finishErr) {
                               console.error('[OTA] 发送结束包失败:', finishErr);
                               setOtaStatus('error');
@@ -348,14 +331,13 @@ export default function SettingsScreen() {
                         
                         if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
                           setOtaStatus('error');
-                          setOtaMessage(`❌ 连续发送失败 ${MAX_CONSECUTIVE_ERRORS} 次\n${error.message}`);
-                          Alert.alert('错误', `连续发送失败 ${MAX_CONSECUTIVE_ERRORS} 次，可能设备已断开连接\n\n${error.message}`);
+                          setOtaMessage(`❌ 连续发送失败 ${MAX_CONSECUTIVE_ERRORS} 次\n${error.message}\n\n可能原因：设备断开连接`);
+                          Alert.alert('错误', `连续发送失败 ${MAX_CONSECUTIVE_ERRORS} 次，可能设备已断开连接\n\n建议返回蓝牙测试页面重新连接`);
                         }
                       }
                     );
                     
                     // 控制发送速度 - OTA 升级需要适当延迟
-                    // 根据实际测试调整延迟时间
                     await new Promise(resolve => setTimeout(resolve, 50));
                     
                   } catch (packetError) {
@@ -378,14 +360,28 @@ export default function SettingsScreen() {
               } catch (sendErr) {
                 console.error('[OTA] 发送数据过程出错:', sendErr);
                 setOtaStatus('error');
-                setOtaMessage(`❌ 升级过程出错:\n${sendErr.message}\n\n可能原因：\n• 设备断开连接\n• 蓝牙信号不稳定\n• 设备进入保护模式`);
-                Alert.alert('升级失败', `升级过程中出现错误:\n\n${sendErr.message}\n\n建议：\n1. 检查设备是否还在附近\n2. 重启设备和应用后重试`);
+                setOtaMessage(
+                  `❌ 升级过程出错:\n${sendErr.message}\n\n` +
+                  `可能原因：\n• 设备断开连接\n• 蓝牙信号不稳定\n• 设备进入保护模式\n\n` +
+                  `建议：返回蓝牙测试页面检查连接状态`
+                );
+                Alert.alert(
+                  '升级失败', 
+                  `升级过程中出现错误:\n\n${sendErr.message}\n\n建议：\n1. 返回蓝牙测试页面检查设备连接\n2. 重启设备和应用后重试`,
+                  [
+                    { text: '稍后再说', style: 'cancel' },
+                    { text: '返回蓝牙测试', onPress: () => router.push('/(drawer)/testble') }
+                  ]
+                );
               }
             }, 1500);  // 握手后等待更长时间
           } catch (handshakeErr) {
             console.error('[OTA] 握手失败:', handshakeErr);
             setOtaStatus('error');
-            setOtaMessage(`❌ 握手失败:\n${handshakeErr.message}\n\n可能原因：\n• 设备不支持此命令\n• 设备不在 OTA 模式\n• 蓝牙连接不稳定`);
+            setOtaMessage(
+              `❌ 握手失败:\n${handshakeErr.message}\n\n` +
+              `可能原因：\n• 设备不支持此命令\n• 设备不在 OTA 模式\n• 蓝牙连接不稳定`
+            );
             Alert.alert('握手失败', `与设备握手失败:\n\n${handshakeErr.message}\n\n请确保：\n1. 设备处于 OTA 升级模式\n2. 设备距离手机较近\n3. 尝试重启设备后再试`);
           }
         }, 800);  // 解析完成后等待一段时间再发送握手
@@ -395,7 +391,7 @@ export default function SettingsScreen() {
       console.error('[OTA] OTA 升级失败:', error);
       setOtaStatus('error');
       setOtaMessage(`❌ OTA 升级失败:\n${error.message}`);
-      Alert.alert('OTA 升级失败', error.message + '\n\n请检查：\n1. 固件文件是否正确下载\n2. 蓝牙权限是否允许\n3. 设备是否在附近且已开机');
+      Alert.alert('OTA 升级失败', error.message + '\n\n请检查：\n1. 固件文件是否正确下载\n2. 蓝牙权限是否允许\n3. 设备是否已连接且在附近');
     }
   };
 
@@ -483,6 +479,93 @@ export default function SettingsScreen() {
     }
   };
 
+  // 下载文件并保存到本地
+  const downloadAndSaveFile = async () => {
+    if (isDownloadingFile) return;
+
+    setIsDownloadingFile(true);
+    setFileDownloadProgress(0);
+    setFileDownloadStatus('正在准备下载...');
+    setDownloadedFilePath(null);
+
+    try {
+      const fileUrl = 'https://www.cssmlj.com/Myofit6/ota/LT5009_Main_ADD1_GR5513.hex';
+      const fileName = 'LT5009_Main_ADD1_GR5513.hex';
+
+      setFileDownloadStatus('正在连接服务器...');
+
+      const result = await downloadFirmware(fileUrl, {
+        onProgress: (progressInfo) => {
+          setFileDownloadProgress(progressInfo.percentage);
+          setFileDownloadStatus(
+            `下载中... ${progressInfo.percentage}%` +
+            (progressInfo.downloadedBytes && progressInfo.totalBytes 
+              ? ` (${(progressInfo.downloadedBytes / 1024 / 1024).toFixed(2)}MB / ${(progressInfo.totalBytes / 1024 / 1024).toFixed(2)}MB)`
+              : '')
+          );
+        },
+        fileName: fileName,
+        showSuccessAlert: true,
+      });
+
+      if (result.success) {
+        console.log('✅ 文件下载成功:', result.path);
+        setFileDownloadStatus('✅ 文件下载成功！已保存到本地');
+        setDownloadedFilePath(result.path);
+        setFileDownloadProgress(100);
+
+        Alert.alert(
+          '📥 下载成功',
+          `文件: ${fileName}\n路径: ${result.path}\n\n文件已保存到本地存储，可以用于 OTA 升级`,
+          [{ text: '确定', style: 'default' }]
+        );
+      } else {
+        console.error('❌ 文件下载失败:', result.message);
+        setFileDownloadStatus(`❌ 下载失败: ${result.message}`);
+        Alert.alert('下载失败', result.message || '无法下载文件，请检查网络连接');
+      }
+
+    } catch (error) {
+      console.error('文件下载异常:', error);
+      setFileDownloadStatus(`❌ 下载异常: ${error.message}`);
+      Alert.alert('下载错误', `文件下载过程中出现错误:\n${error.message}`);
+    } finally {
+      setIsDownloadingFile(false);
+    }
+  };
+
+  // 查看已下载的文件信息
+  const viewDownloadedFileInfo = async () => {
+    try {
+      const fileName = 'LT5009_Main_ADD1_GR5513.hex';
+      const fileInfo = await getLocalFileInfo(fileName);
+
+      if (fileInfo.exists) {
+        Alert.alert(
+          '📄 本地文件信息',
+          `文件名: ${fileName}\n大小: ${(fileInfo.size / 1024).toFixed(2)} KB\n路径: ${fileInfo.path}\n修改时间: ${fileInfo.lastModified || '未知'}`,
+          [
+            { text: '关闭', style: 'cancel' },
+            { 
+              text: '使用此文件升级', 
+              onPress: () => {
+                setSelectedFile({
+                  name: fileName,
+                  uri: fileInfo.path,
+                  size: fileInfo.size,
+                });
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('提示', '未找到已下载的固件文件\n\n请先点击"下载固件到本地"按钮下载文件');
+      }
+    } catch (error) {
+      Alert.alert('错误', `获取文件信息失败: ${error.message}`);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Appbar.Header>
@@ -492,34 +575,112 @@ export default function SettingsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>固件管理</Text>
         
-        <View style={styles.buttonContainer}>
-          <Button
-            mode="contained"
-            onPress={downloadHex}
-            disabled={downloading}
-            style={styles.button}
-            title={downloading ? "下载中..." : "下载固件"}
-          >
-          </Button>
+        {/* 网络下载区域 */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>网络获取</Text>
+          <View style={styles.buttonRow}>
+            <PaperButton
+              mode="contained"
+              onPress={downloadHex}
+              disabled={downloading}
+              style={styles.flexButton}
+              icon="cloud-download"
+              loading={downloading}
+            >
+              {downloading ? '下载中...' : '直接下载'}
+            </PaperButton>
 
-          <Button
-            mode="outlined"
-            onPress={smartDownload}
-            disabled={downloading}
-            style={styles.button}
-            title="智能下载（检查更新）"
-          >
-          </Button>
-
-          <Button
-            mode="contained-tonal"
-            onPress={pickDocument}
-            style={styles.button}
-            color="#6200ee"
-            title="选择本地固件文件"
-          >
-          </Button>
+            <PaperButton
+              mode="outlined"
+              onPress={smartDownload}
+              disabled={downloading}
+              style={styles.flexButton}
+              icon="sync"
+            >
+              智能下载
+            </PaperButton>
+          </View>
         </View>
+
+        {/* 本地文件管理 */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionLabel}>本地文件</Text>
+          <View style={styles.buttonRow}>
+            <PaperButton
+              mode="contained"
+              onPress={downloadAndSaveFile}
+              disabled={isDownloadingFile}
+              style={[styles.flexButton, styles.downloadFileButton]}
+              icon="download"
+              loading={isDownloadingFile}
+            >
+              {isDownloadingFile ? '保存中...' : '下载到本地'}
+            </PaperButton>
+
+            <PaperButton
+              mode="outlined"
+              onPress={viewDownloadedFileInfo}
+              style={styles.flexButton}
+              icon="folder-open"
+            >
+              查看本地
+            </PaperButton>
+          </View>
+          
+          <View style={styles.buttonRow}>
+            <PaperButton
+              mode="contained-tonal"
+              onPress={pickDocument}
+              style={styles.fullWidthButton}
+              color="#6200ee"
+              icon="file-upload"
+            >
+              选择其他文件
+            </PaperButton>
+          </View>
+        </View>
+
+        {/* 文件下载进度 */}
+        {isDownloadingFile && (
+          <View style={styles.fileDownloadProgressContainer}>
+            <ActivityIndicator size="large" color="#2196f3" />
+            <Text style={styles.fileDownloadStatus}>{fileDownloadStatus}</Text>
+            
+            {fileDownloadProgress > 0 && fileDownloadProgress < 100 && (
+              <View style={styles.downloadProgressBar}>
+                <View style={styles.downloadProgressBarBg}>
+                  <View 
+                    style={[
+                      styles.downloadProgressBarFill,
+                      { width: `${fileDownloadProgress}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.downloadProgressPercent}>
+                  {Math.round(fileDownloadProgress)}%
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 下载完成提示 */}
+        {!isDownloadingFile && downloadedFilePath && (
+          <View style={styles.downloadSuccessContainer}>
+            <Text style={styles.downloadSuccessIcon}>✅</Text>
+            <Text style={styles.downloadSuccessText}>文件已保存到本地</Text>
+            <Text style={styles.downloadPathText}>{downloadedFilePath}</Text>
+            <PaperButton
+              mode="text"
+              onPress={() => setDownloadedFilePath(null)}
+              compact
+            >
+              隐藏
+            </PaperButton>
+          </View>
+        )}
+
+        <View style={styles.sectionDivider} />
 
         {downloading && (
           <View style={styles.progressContainer}>
@@ -546,7 +707,7 @@ export default function SettingsScreen() {
         <View style={styles.sectionDivider} />
         <Text style={styles.sectionTitle}>OTA 固件升级</Text>
 
-        {/* 蓝牙连接状态 */}
+        {/* 蓝牙连接状态检查 */}
         <View style={styles.bleStatusContainer}>
           <View style={styles.statusRow}>
             <View style={[styles.statusDot, { backgroundColor: isInitialized ? '#4caf50' : '#ff9800' }]} />
@@ -554,11 +715,36 @@ export default function SettingsScreen() {
           </View>
           
           {isConnected && connectedDevice && (
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, { backgroundColor: '#4caf50' }]} />
-              <Text style={styles.statusText}>
-                已连接: {connectedDevice.name || connectedDevice.localName || connectedDevice.id}
+            <View style={[styles.connectedDeviceCard, styles.successBorder]}>
+              <View style={styles.deviceStatusRow}>
+                <View style={[styles.statusDot, { backgroundColor: '#4caf50', width: 14, height: 14 }]} />
+                <View>
+                  <Text style={styles.connectedDeviceName}>
+                    {connectedDevice.name || connectedDevice.localName || '未知设备'}
+                  </Text>
+                  <Text style={styles.connectedDeviceId}>ID: {connectedDevice.id}</Text>
+                </View>
+              </View>
+              <Text style={styles.readyHint}>✓ 设备已准备就绪，可以开始 OTA 升级</Text>
+            </View>
+          )}
+
+          {!isConnected && (
+            <View style={[styles.notConnectedCard, styles.warningBorder]}>
+              <Text style={styles.notConnectedTitle}>⚠️ 未检测到已连接的设备</Text>
+              <Text style={styles.notConnectedSubtitle}>
+                请先在"蓝牙测试"页面扫描并连接设备
               </Text>
+              <PaperButton
+                mode="outlined"
+                onPress={() => router.push('/(drawer)/testble')}
+                icon="bluetooth"
+                style={styles.gotoBleButton}
+                color="#2196f3"
+                compact
+              >
+                前往蓝牙测试
+              </PaperButton>
             </View>
           )}
         </View>
@@ -785,8 +971,103 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
+  sectionCard: {
+    backgroundColor: '#fafafa',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  flexButton: {
+    flex: 1,
+  },
+  fullWidthButton: {
+    width: '100%',
+  },
   button: {
     marginVertical: 4,
+  },
+  downloadFileButton: {
+    backgroundColor: '#2196f3',
+  },
+  fileDownloadProgressContainer: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#e3f2fd',
+    borderRadius: 8,
+    marginVertical: 10,
+  },
+  fileDownloadStatus: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#1976d2',
+    textAlign: 'center',
+  },
+  downloadProgressBar: {
+    width: '100%',
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  downloadProgressBarBg: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#bbdefb',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  downloadProgressBarFill: {
+    height: '100%',
+    backgroundColor: '#2196f3',
+    borderRadius: 4,
+  },
+  downloadProgressPercent: {
+    marginTop: 5,
+    fontSize: 12,
+    color: '#1976d2',
+  },
+  downloadSuccessContainer: {
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#4caf50',
+    marginVertical: 10,
+  },
+  downloadSuccessIcon: {
+    fontSize: 32,
+    marginBottom: 5,
+  },
+  downloadSuccessText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 5,
+  },
+  downloadPathText: {
+    fontSize: 11,
+    color: '#558b2f',
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 15,
   },
   progressContainer: {
     alignItems: 'center',
@@ -960,6 +1241,66 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
     marginRight: 8,
+  },
+  connectedDeviceCard: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  successBorder: {
+    borderWidth: 2,
+    borderColor: '#4caf50',
+  },
+  deviceStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  connectedDeviceName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginLeft: 8,
+  },
+  connectedDeviceId: {
+    fontSize: 12,
+    color: '#558b2f',
+    marginLeft: 24,
+    marginTop: 2,
+  },
+  readyHint: {
+    fontSize: 13,
+    color: '#4caf50',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  notConnectedCard: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  warningBorder: {
+    borderWidth: 2,
+    borderColor: '#ff9800',
+  },
+  notConnectedTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#e65100',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  notConnectedSubtitle: {
+    fontSize: 13,
+    color: '#ef6c00',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  gotoBleButton: {
+    marginTop: 4,
   },
   otaButtonContainer: {
     flexDirection: 'row',

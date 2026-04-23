@@ -1,12 +1,15 @@
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { StyleSheet, Text, View, Alert, ActivityIndicator, TextInput, ScrollView, Platform, Button, TouchableOpacity, FlatList } from "react-native";
 import { Appbar, Button as PaperButton, Card, IconButton } from "react-native-paper";
 
 import { useEffect, useState } from "react";
 
-import useBLE from '../../hooks/useBLE';
+import { useBLE } from '../../contexts/BLEContext';
+
 export default function TestBLEScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
+  
   const {
     isInitialized,
     isScanning,
@@ -40,6 +43,22 @@ export default function TestBLEScreen() {
   const [writeCharacteristicUUID, setWriteCharacteristicUUID] = useState('0000fff2-0000-1000-8000-00805f9b34fb');
   const [writeData, setWriteData] = useState('AA554252A84755AA');
   const [isWriting, setIsWriting] = useState(false);
+  const [otaReadyStatus, setOtaReadyStatus] = useState('not_ready'); // not_ready, ready, preparing
+
+  // 连接成功后自动检查并提示可以进入OTA升级
+  useEffect(() => {
+    if (isConnected && connectedDevice && services.length > 0) {
+      console.log('[TestBLE] 设备已就绪，可以进行OTA升级');
+      setOtaReadyStatus('ready');
+      
+      // 3秒后自动隐藏提示
+      setTimeout(() => {
+        setOtaReadyStatus('not_ready');
+      }, 5000);
+    } else if (!isConnected) {
+      setOtaReadyStatus('not_ready');
+    }
+  }, [isConnected, connectedDevice, services.length]);
 
   const handleScan = async () => {
     try {
@@ -59,28 +78,37 @@ export default function TestBLEScreen() {
       console.log('连接设备...');
       console.time('设备信息');
       setSelectedDeviceId(device.id);
+      setOtaReadyStatus('preparing');
       await connectToDevice(device.id);
       console.log('连接成功');
       console.timeEnd('设备信息');
+      
       try {
-        // setTimeout(async () => {
         console.log('开始服务发现...');
-          const discoveredServices = await discoverServices();
-          setServices(discoveredServices);
-          console.log('服务发现完成');
-          // console.log('发现的服务:', JSON.stringify(discoveredServices, null, 2));
-          // console.log('发现的服务:', JSON.stringify(discoveredServices, null, 2));
-
-        // }, 2000);
+        const discoveredServices = await discoverServices();
+        setServices(discoveredServices);
+        console.log('服务发现完成，共', discoveredServices.length, '个服务');
+        
       } catch (serviceErr) {
         console.error('获取服务失败:', serviceErr);
       }
 
-      Alert.alert('成功', `已连接到 ${device.name || device.localName || '未知设备'}`);
+      Alert.alert(
+        '✅ 连接成功', 
+        `已连接到 ${device.name || device.localName || '未知设备'}\n\n发现 ${services.length} 个蓝牙服务\n\n现在可以前往设置页面进行 OTA 升级`,
+        [
+          { text: '稍后再说', style: 'cancel' },
+          { 
+            text: '前往升级', 
+            onPress: () => router.push('/(drawer)/settings')
+          }
+        ]
+      );
     } catch (err) {
       console.error('连接失败:', err);
       Alert.alert('连接失败', err.message || '无法连接到设备');
       setSelectedDeviceId(null);
+      setOtaReadyStatus('not_ready');
     }
   };
 
@@ -130,7 +158,8 @@ export default function TestBLEScreen() {
         bytes.push(parseInt(hexData.substr(i, 2), 16));
       }
 
-      await writeCharacteristic(writeServiceUUID, writeCharacteristicUUID, bytes, 'WithResponse');
+      
+      await writeCharacteristic(null, writeServiceUUID, writeCharacteristicUUID, bytes, 'WithResponse');
 
       console.log('写入数据成功:', {
         serviceUUID: writeServiceUUID,
@@ -399,6 +428,38 @@ export default function TestBLEScreen() {
               已连接: {connectedDevice.name || connectedDevice.localName || connectedDevice.id}
             </Text>
           </View>
+        )}
+
+        {/* OTA 升级就绪状态提示 */}
+        {otaReadyStatus === 'ready' && isConnected && (
+          <View style={styles.otaReadyContainer}>
+            <View style={styles.otaReadyBadge}>
+              <Text style={styles.otaReadyIcon}>✓</Text>
+              <View>
+                <Text style={styles.otaReadyTitle}>设备已准备就绪</Text>
+                <Text style={styles.otaReadySubtitle}>可以进行 OTA 固件升级</Text>
+              </View>
+            </View>
+            <PaperButton
+              mode="contained"
+              onPress={() => router.push('/(drawer)/settings')}
+              icon="upload"
+              style={styles.gotoOtaButton}
+              color="#4caf50"
+            >
+              前往 OTA 升级
+            </PaperButton>
+          </View>
+        )}
+
+        {/* 已连接但未显示ready状态时也显示按钮 */}
+        {isConnected && otaReadyStatus !== 'ready' && services.length > 0 && (
+          <TouchableOpacity 
+            style={styles.miniOtaButton}
+            onPress={() => router.push('/(drawer)/settings')}
+          >
+            <Text style={styles.miniOtaButtonText}>📦 前往 OTA 升级</Text>
+          </TouchableOpacity>
         )}
 
         {error && (
@@ -1227,5 +1288,55 @@ const styles = StyleSheet.create({
     color: '#666',
     width: 35,
     textAlign: 'right',
+  },
+  // OTA 升级就绪状态样式
+  otaReadyContainer: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#4caf50',
+  },
+  otaReadyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  otaReadyIcon: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#4caf50',
+    marginRight: 12,
+  },
+  otaReadyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 4,
+  },
+  otaReadySubtitle: {
+    fontSize: 13,
+    color: '#558b2f',
+  },
+  gotoOtaButton: {
+    width: '100%',
+    paddingVertical: 8,
+  },
+  miniOtaButton: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#2196f3',
+  },
+  miniOtaButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1976d2',
   },
 });

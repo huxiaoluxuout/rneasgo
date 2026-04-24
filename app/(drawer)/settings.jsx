@@ -258,9 +258,10 @@ export default function SettingsScreen() {
             setOtaMessage(`正在发送握手包到 ${connectedDevice.name || connectedDevice.id}...`);
             console.log('[OTA] 发送握手包');
             
-            ylxBleOTA.sendHandshake();
-            
-            // 等待握手响应后开始发送数据
+            ylxBleOTA.sendHandshake(()=>{
+              setOtaStatus('completed');
+              setOtaMessage('✓ 手握包发送完成');
+                 // 等待握手响应后开始发送数据
             setTimeout(async () => {
               try {
                 // 再次验证连接
@@ -301,7 +302,7 @@ export default function SettingsScreen() {
                               setOtaMessage('正在发送结束包...');
                               console.log('[OTA] 发送结束包');
                               
-                              await ylxBleOTA.sendFinish();
+                              // await ylxBleOTA.sendFinish();
                               setOtaStatus('completed');
                               setOtaMessage(
                                 `✅ OTA 升级完成！\n\n` +
@@ -375,6 +376,12 @@ export default function SettingsScreen() {
                 );
               }
             }, 1500);  // 握手后等待更长时间
+            
+              return;
+            });
+           
+            
+         
           } catch (handshakeErr) {
             console.error('[OTA] 握手失败:', handshakeErr);
             setOtaStatus('error');

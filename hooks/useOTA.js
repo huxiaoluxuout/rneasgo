@@ -193,7 +193,7 @@ class BluetoothOTAUpdater {
    * [3-6]: 地址(4字节大端)
    * [7-8]: 校验和(2字节)
    */
-  sendHandshake() {
+  sendHandshake(callback) {
     const packet = new Uint8Array(9);
     packet[0] = BluetoothOTAUpdater.PACKET_HEADER;
     packet[1] = BluetoothOTAUpdater.HANDSHAKE_PACKET_LENGTH;
@@ -212,6 +212,7 @@ class BluetoothOTAUpdater {
     this.writeBLE(packet)
       .then(() => {
         console.log("发送握手包成功", this.deviceId);
+        callback && callback();
       })
       .catch((err) => {
         console.error("发送握手包", this.deviceId, err);

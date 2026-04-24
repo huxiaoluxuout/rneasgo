@@ -155,7 +155,7 @@ export default function TestBLEScreen() {
 
       const bytes = [];
       for (let i = 0; i < hexData.length; i += 2) {
-        bytes.push(parseInt(hexData.substr(i, 2), 16));
+        bytes.push(parseInt(hexData.slice(i, i + 2), 16));
       }
 
       
